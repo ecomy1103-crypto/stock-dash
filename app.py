@@ -236,9 +236,9 @@ if latest:
 if st.session_state.get("force_nav"):
     st.session_state.nav_choice = st.session_state.pop("force_nav")
 
-NAV_ITEMS = ["홈", "내 종목", "계좌 연결", "교육자료", "설정"]
-legacy = {"통합 분석":"내 종목", "AI 인사이트":"내 종목", "관심 종목":"내 종목", "포트폴리오":"계좌 연결"}
-current = st.session_state.get("nav_choice", "홈")
+NAV_ITEMS = ["내 종목", "계좌 연결", "교육자료", "설정"]
+legacy = {"통합 분석":"내 종목", "홈":"내 종목", "AI 인사이트":"내 종목", "관심 종목":"내 종목", "포트폴리오":"계좌 연결"}
+current = st.session_state.get("nav_choice", "내 종목")
 if current not in NAV_ITEMS:
     st.session_state.nav_choice = legacy.get(current, "설정")
     if current not in legacy:
@@ -321,133 +321,74 @@ def global_search():
 
 
 def render_home():
-    now = datetime.now(ZoneInfo("Asia/Seoul"))
-    snapshot = st.session_state.get("account_snapshot")
-    positions = (snapshot or {}).get("positions", [])
-    saved_stocks = [s for s in state.get("stocks", []) if s.get("code") != "SAMPLE"]
-
-    st.markdown(
-        f"""
-<div class="dashboard-title">
-  <div>
-    <div class="dashboard-chip">STOCKDASH OVERVIEW</div>
-    <h1>주식 대시보드</h1>
-    <p>계좌·기업·공시 데이터를 한 화면에서 확인하고 필요한 분석으로 바로 이동합니다.</p>
-  </div>
-  <div class="dashboard-clock">{now:%Y년 %m월 %d일} · {now:%H:%M}</div>
-</div>
-""",
-        unsafe_allow_html=True,
+    hero(
+        "시장을 읽고, 더 나은 판단을 만듭니다.",
+        "공시·재무·시세를 한 흐름으로 연결하고, 새 기관 API가 추가될수록 시장·수급·산업 분석이 확장됩니다.",
     )
-
     global_search()
 
-    total_value = f"{snapshot['value']:,.0f}원" if snapshot else "계좌 연결 필요"
-    pnl = f"{snapshot['pnl']:+,.0f}원" if snapshot else "연결 후 표시"
-    cash = (
-        f"{snapshot['cash']:,.0f}원"
-        if snapshot and snapshot.get("cash") is not None
-        else ("미수집" if snapshot else "연결 후 표시")
-    )
-    focus_count = len(saved_stocks)
+    st.subheader("시장 스냅샷")
     cols = st.columns(4)
-    with cols[0]:
-        card("국내주식 평가액", total_value, "한국투자증권 조회 시점 기준" if snapshot else "계좌 연결에서 불러올 수 있습니다.")
-    with cols[1]:
-        card("평가손익", pnl, "보유 국내주식 기준" if snapshot else "실제 계좌 수익률을 표시합니다.")
-    with cols[2]:
-        card("예수금", cash, "출금 가능 금액과 다를 수 있음" if snapshot else "계좌 API 연결 후 표시")
-    with cols[3]:
-        card("내 분석 종목", f"{focus_count}개", "관심·분석 저장 종목")
+    market_cards = [
+        ("KOSPI", "데이터 연결 필요", "market.index"),
+        ("KOSDAQ", "데이터 연결 필요", "market.index"),
+        ("외국인 수급", "데이터 연결 필요", "market.investor_flow"),
+        ("원/달러", "데이터 연결 필요", "macro.fx"),
+    ]
+    for col, (title, value, cap) in zip(cols, market_cards):
+        with col:
+            card(title, value, f"필요 Capability · {cap}")
 
-    left, middle, right = st.columns([2.05, 1.05, 1.15])
+    left, right = st.columns([2, 1])
     with left:
         with st.container(border=True):
-            st.markdown('<div class="dashboard-section"><div><div class="dashboard-section-title">선택 종목 실적 추이</div><div class="dashboard-kicker">확정 결산 기준 · 억원</div></div></div>', unsafe_allow_html=True)
-            if report and report.get("years"):
-                chart = pd.DataFrame(report["years"])[["year", "revenue", "profit"]].rename(
-                    columns={"year": "연도", "revenue": "매출", "profit": "영업이익"}
-                )
-                chart["연도"] = chart["연도"].astype(str)
-                st.bar_chart(chart.set_index("연도"), color=["#2F6BFF", "#0EA56A"])
-                st.caption(f"{stock.get('name', '선택 종목')} · 최근 저장된 공식 분석")
-            else:
-                empty_state(
-                    "분석 종목을 선택하세요",
-                    "내 종목에서 기업을 추가하거나 분석하면 이 영역에 최근 확정 실적 흐름을 표시합니다.",
-                )
-
-    with middle:
-        with st.container(border=True):
-            st.markdown('<div class="dashboard-section"><div><div class="dashboard-section-title">포트폴리오</div><div class="dashboard-kicker">평가액 기준 비중</div></div></div>', unsafe_allow_html=True)
-            if positions:
-                weight_rows = pd.DataFrame(
-                    [
-                        {"종목": p["name"], "비중": round(float(p.get("weight", 0)), 1), "평가액": float(p.get("value", 0))}
-                        for p in sorted(positions, key=lambda x: x.get("weight", 0), reverse=True)[:6]
-                    ]
-                )
-                st.bar_chart(weight_rows.set_index("종목")["비중"], horizontal=True)
-                st.dataframe(
-                    weight_rows[["종목", "비중"]].rename(columns={"비중": "비중 %"}),
-                    hide_index=True,
-                    use_container_width=True,
-                )
-            else:
-                empty_state("계좌 연결 대기", "계좌를 불러오면 보유 종목별 비중을 자동으로 표시합니다.")
-
+            st.subheader("주요 지수 추이")
+            empty_state(
+                "시장 시계열 API 연결 대기",
+                "지수 API가 연결되면 KOSPI·KOSDAQ과 주요 시장 흐름을 이 영역에 표시합니다. 가상 지수는 넣지 않습니다.",
+            )
     with right:
         with st.container(border=True):
-            st.markdown('<div class="dashboard-section"><div><div class="dashboard-section-title">관심·분석 종목</div><div class="dashboard-kicker">최근 저장 상태</div></div></div>', unsafe_allow_html=True)
-            watch_rows = []
-            for item in list(choices.values())[:7]:
-                price = item.get("price_snapshot", {}).get("price")
-                if price is None and item.get("report"):
-                    price = item["report"].get("price")
-                watch_rows.append(
-                    {
-                        "종목": item.get("name", ""),
-                        "구분": item.get("kind", "관심"),
-                        "최근가": f"{price:,.0f}" if isinstance(price, (int, float)) else "—",
-                    }
-                )
-            if watch_rows:
-                st.dataframe(pd.DataFrame(watch_rows), hide_index=True, use_container_width=True)
+            st.subheader("오늘의 주요 변화")
+            if report and not is_demo:
+                notices = sorted(report.get("disclosures", []), key=lambda x: x.get("date", ""), reverse=True)
+                if notices:
+                    for item in notices[:4]:
+                        st.link_button(item["date"] + " · " + item["title"], item["url"], use_container_width=True)
+                else:
+                    st.caption("선택 종목의 최근 공시가 수집되지 않았습니다.")
             else:
-                empty_state("관심종목 없음", "내 종목에서 첫 기업을 추가하면 이곳에 표시됩니다.")
+                empty_state("종목을 검색해 시작", "검색 후 선택 종목의 최신 공시와 핵심 변화를 여기에 모읍니다.")
 
-    bottom_left, bottom_right = st.columns([1.45, 1])
-    with bottom_left:
-        with st.container(border=True):
-            st.markdown('<div class="dashboard-section"><div><div class="dashboard-section-title">주요 시장 데이터</div><div class="dashboard-kicker">기관 API 연결 상태</div></div></div>', unsafe_allow_html=True)
-            caps = active_capabilities()
-            market_cards = [
-                ("KOSPI·KOSDAQ", "market.index"),
-                ("투자자 수급", "market.investor_flow"),
-                ("업종 흐름", "sector.performance"),
-                ("원/달러", "macro.fx"),
-            ]
-            mc = st.columns(4)
-            for col, (label, cap) in zip(mc, market_cards):
-                with col:
-                    card(label, "연결됨" if cap in caps else "연결 필요", cap)
+    st.subheader("내 분석 포커스")
+    if report:
+        result = brief(report)
+        fair = result.get("fair")
+        cols = st.columns(4)
+        with cols[0]:
+            card("현재 선택", stock["name"], stock_label(stock))
+        with cols[1]:
+            card("성장", result["growth"], "확정 결산 기반")
+        with cols[2]:
+            card("가치 상태", result["value"], "역사적 배수 참고")
+        with cols[3]:
+            value = f"{fair['base']:,.0f}원" if fair else "자료 부족"
+            card("적정가 참고", value, "목표주가가 아닌 참고값")
+    else:
+        empty_state("아직 분석된 종목이 없습니다", "상단 검색에서 종목을 선택하면 기업·재무·공시 분석이 저장됩니다.")
 
-    with bottom_right:
-        with st.container(border=True):
-            st.markdown('<div class="dashboard-section"><div><div class="dashboard-section-title">최근 활동</div><div class="dashboard-kicker">분석·투자일지</div></div></div>', unsafe_allow_html=True)
-            journal = list(reversed(state.get("journal", [])))[:6]
-            names = {s.get("code"): s.get("name", s.get("code")) for s in state.get("stocks", [])}
-            rows = []
-            for item in journal:
-                at = str(item.get("at", "")).replace("T", " ")[:16]
-                kind = {"automatic": "자동분석", "note": "투자일지"}.get(item.get("kind"), item.get("kind", "기록"))
-                rows.append({"일시": at, "종목": names.get(item.get("code"), item.get("code", "")), "활동": kind})
-            if rows:
-                st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
-            else:
-                empty_state("최근 활동 없음", "기업 분석이나 투자일지를 저장하면 최근 활동을 표시합니다.")
-
-    st.caption("홈 화면은 저장·연결된 실제 데이터만 표시합니다. 연결되지 않은 시장 데이터에는 임의 수치를 넣지 않습니다.")
+    st.subheader("확장 준비")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        card("상승률 TOP", "API 연결 대기", "market ranking")
+    with c2:
+        card("거래대금 TOP", "API 연결 대기", "market turnover")
+    with c3:
+        ai = stock.get("ai_brief", {})
+        if ai.get("status") == "ok":
+            card("AI 인사이트", "분석 준비됨", "수집 데이터 해설")
+        else:
+            card("AI 인사이트", "선택 기능", "OPENAI API 연결 시 활성화")
 
 
 def render_market():
@@ -776,9 +717,7 @@ def render_placeholder(title, subtitle, required):
                 st.caption(cap)
 
 
-if nav == "홈":
-    render_home()
-elif nav == "내 종목":
+if nav == "내 종목":
     render_research(store, state, sample_mode)
 elif nav == "계좌 연결":
     render_portfolio(store, sample_mode)
