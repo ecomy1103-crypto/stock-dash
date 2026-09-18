@@ -405,6 +405,101 @@ hr { border-color:rgba(116,145,190,.13)!important; }
 @media (max-width:560px) {
   .market-grid { grid-template-columns:1fr; }
 }
+
+/* MARKET PULSE — dark dashboard visual system */
+:root {
+  --bg:#06111f; --surface:#0b1b2d; --surface-2:#10243a; --line:#1d3855;
+  --text:#eef7ff; --muted:#89a2be; --accent:#22d3ee; --green:#22c55e; --red:#f43f5e;
+}
+html,body,[data-testid="stAppViewContainer"] {
+  background:radial-gradient(circle at 72% -12%,rgba(26,89,150,.24),transparent 34%),#06111f!important;
+  color:var(--text)!important;
+}
+[data-testid="stHeader"] { background:rgba(6,17,31,.76)!important; }
+[data-testid="stSidebar"] {
+  background:linear-gradient(180deg,#092039 0%,#071525 100%)!important;
+  border-right:1px solid var(--line)!important;
+}
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] label { color:#a9bed4!important; }
+[data-testid="stSidebar"] [role="radiogroup"] label {
+  padding:.7rem .8rem!important; border-radius:9px!important; transition:.18s ease!important;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
+  color:#fff!important; background:linear-gradient(90deg,#1151a2,#176bd2)!important;
+  box-shadow:0 9px 24px rgba(19,97,204,.28)!important;
+}
+.block-container { max-width:1680px!important; padding-top:1.45rem!important; }
+h1,h2,h3,h4,.dashboard-title h1,.dashboard-section-title { color:var(--text)!important; }
+p,[data-testid="stCaptionContainer"],.dashboard-title p,.dashboard-clock,.dashboard-kicker { color:var(--muted)!important; }
+.planx-brand-title { color:#eaf8ff!important; }
+.planx-brand-sub { color:#6e91b4!important; }
+.planx-brand-mark {
+  background:linear-gradient(145deg,#17d3e6,#1e71ff)!important;
+  box-shadow:0 0 28px rgba(34,211,238,.28)!important;
+}
+.dashboard-chip,.trend-chip {
+  color:#9edfff!important; background:rgba(18,54,84,.72)!important;
+  border:1px solid rgba(55,125,179,.28)!important; box-shadow:none!important;
+}
+.dashboard-clock { background:#0b1b2d!important; border-color:var(--line)!important; box-shadow:none!important; }
+.stTextInput input,.stTextArea textarea,.stSelectbox div[data-baseweb="select"]>div {
+  background:#0b1b2d!important; color:#eaf5ff!important; border-color:#28496a!important;
+}
+.stTextInput input::placeholder { color:#718ba8!important; }
+.home-kpi {
+  background:linear-gradient(145deg,#0d2034,#0a192a)!important;
+  border:1px solid var(--line)!important; box-shadow:0 14px 36px rgba(0,0,0,.24)!important;
+}
+.home-kpi:after { opacity:.08!important; }
+.kpi-icon,.kpi-badge { background:#112942!important; color:#a9dfff!important; box-shadow:none!important; }
+.kpi-title,.kpi-note { color:var(--muted)!important; }
+.kpi-value { color:#f2f8ff!important; }
+.green .kpi-value { color:var(--green)!important; }
+.home-kpi:hover { box-shadow:0 18px 44px rgba(0,0,0,.34),0 0 22px rgba(34,211,238,.08)!important; }
+.dark-chart-card {
+  background:radial-gradient(circle at 75% 10%,rgba(26,121,201,.18),transparent 30%),linear-gradient(155deg,#07182a,#0b2138)!important;
+  border-color:#1d4262!important; box-shadow:0 18px 46px rgba(0,0,0,.28)!important;
+}
+.portfolio-card,.watch-card,.market-card,.activity-card,[data-testid="stVerticalBlockBorderWrapper"] {
+  background:linear-gradient(145deg,rgba(14,31,50,.98),rgba(10,24,40,.98))!important;
+  border-color:var(--line)!important; box-shadow:0 14px 36px rgba(0,0,0,.22)!important;
+}
+.watch-row,.activity-row { border-bottom-color:rgba(78,120,157,.18)!important; }
+.watch-name,.watch-price,.ring-center strong { color:#eaf4ff!important; }
+.watch-sub,.ring-center small { color:var(--muted)!important; }
+.watch-tag { color:var(--accent)!important; }
+.portfolio-ring:after { background:#0d2034!important; box-shadow:inset 0 0 0 1px var(--line)!important; }
+.market-mini {
+  background:linear-gradient(145deg,#10243a,#0b1c2e)!important; border-color:var(--line)!important;
+}
+.market-mini-title,.market-mini-value { color:#eaf4ff!important; }
+.market-mini-cap { color:var(--muted)!important; }
+[data-testid="stMetric"] {
+  background:#0c1c2e!important; border-color:var(--line)!important; box-shadow:0 12px 30px rgba(0,0,0,.2)!important;
+}
+[data-testid="stMetricLabel"] { color:var(--muted)!important; }
+[data-testid="stMetricValue"] { color:var(--text)!important; }
+.stDataFrame { border-color:var(--line)!important; }
+[data-testid="stDataFrame"] { filter:saturate(.92) brightness(.86); }
+.planx-hero,.planx-card {
+  background:linear-gradient(145deg,#0e2034,#0a192a)!important; border-color:var(--line)!important;
+  box-shadow:0 16px 38px rgba(0,0,0,.22)!important;
+}
+.planx-hero h1,.planx-card-value { color:var(--text)!important; }
+.planx-hero p,.planx-card-title,.planx-card-note { color:var(--muted)!important; }
+.planx-eyebrow { color:var(--accent)!important; }
+.planx-empty { background:#0c1c2e!important; border-color:#294866!important; color:var(--muted)!important; }
+.planx-empty strong { color:#dbeafe!important; }
+.sidebar-promo {
+  background:radial-gradient(circle at 85% 15%,rgba(34,211,238,.25),transparent 30%),linear-gradient(145deg,#092646,#0c4381)!important;
+}
+.stButton>button,.stFormSubmitButton>button { border-color:#285175!important; color:#dff4ff!important; background:#102943!important; }
+.stButton>button[kind="primary"],.stFormSubmitButton>button[kind="primary"] {
+  background:linear-gradient(115deg,#1168c9,#12a9c4)!important; color:#fff!important;
+}
+hr { border-color:rgba(78,120,157,.2)!important; }
+
 </style>
 """,
         unsafe_allow_html=True,
@@ -417,8 +512,8 @@ def brand():
 <div class="planx-brand">
   <div class="planx-brand-mark">↗</div>
   <div>
-    <div class="planx-brand-title">StockDash</div>
-    <div class="planx-brand-sub">INVESTMENT OS · DATA TO INSIGHT</div>
+    <div class="planx-brand-title">MARKET PULSE</div>
+    <div class="planx-brand-sub">STOCKDASH · DATA TO INSIGHT</div>
   </div>
 </div>
 """,
