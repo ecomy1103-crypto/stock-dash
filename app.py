@@ -1,5 +1,4 @@
 import hashlib
-import html
 import hmac
 import json
 import os
@@ -237,9 +236,9 @@ if latest:
 if st.session_state.get("force_nav"):
     st.session_state.nav_choice = st.session_state.pop("force_nav")
 
-NAV_ITEMS = ["주식 대시보드", "내 종목", "계좌 연결", "시장 현황", "교육자료", "설정"]
-legacy = {"홈":"주식 대시보드", "통합 분석":"내 종목", "AI 인사이트":"내 종목", "관심 종목":"내 종목", "포트폴리오":"계좌 연결"}
-current = st.session_state.get("nav_choice", "주식 대시보드")
+NAV_ITEMS = ["홈", "내 종목", "계좌 연결", "교육자료", "설정"]
+legacy = {"통합 분석":"내 종목", "AI 인사이트":"내 종목", "관심 종목":"내 종목", "포트폴리오":"계좌 연결"}
+current = st.session_state.get("nav_choice", "홈")
 if current not in NAV_ITEMS:
     st.session_state.nav_choice = legacy.get(current, "설정")
     if current not in legacy:
@@ -271,18 +270,6 @@ with st.sidebar:
         st.caption("임시 저장 모드")
     else:
         st.caption("클라우드 저장" if store.cloud else "실행 서버 저장")
-
-    st.markdown(
-        """
-<div class="sidebar-promo">
-  <div class="sidebar-promo-badge">✦ STOCKDASH</div>
-  <div class="sidebar-promo-title">더 빠른 판단을 위한<br>투자 데이터 허브</div>
-  <div class="sidebar-promo-note">계좌 · 공시 · 기업 분석을 한 흐름으로 연결합니다.</div>
-  <div class="sidebar-promo-cta">Data to Insight →</div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
 
     if password and st.button("로그아웃", use_container_width=True):
         st.session_state.clear()
@@ -333,104 +320,21 @@ def global_search():
                     run_analysis(candidate["code"])
 
 
-def _home_kpi(title, value, note, icon, tone, badge):
-    st.markdown(
-        f"""
-<div class="home-kpi {tone}">
-  <div class="kpi-top">
-    <div class="kpi-icon">{html.escape(icon)}</div>
-    <div class="kpi-badge">{html.escape(badge)}</div>
-  </div>
-  <div class="kpi-title">{html.escape(title)}</div>
-  <div class="kpi-value">{html.escape(value)}</div>
-  <div class="kpi-note">{html.escape(note)}</div>
-  <div class="kpi-glow"></div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-
-def _line_chart_svg(years):
-    rows = [x for x in years if isinstance(x.get("revenue"), (int, float)) and isinstance(x.get("profit"), (int, float))]
-    if not rows:
-        return ""
-    width, height, pad = 760, 270, 36
-    values = [float(x["revenue"]) for x in rows] + [float(x["profit"]) for x in rows]
-    low, high = min(values), max(values)
-    span = max(high - low, 1.0)
-    def xy(index, value):
-        x = pad if len(rows) == 1 else pad + index * (width - pad * 2) / (len(rows) - 1)
-        y = height - pad - (float(value) - low) / span * (height - pad * 2)
-        return x, y
-    rev = [xy(i, row["revenue"]) for i, row in enumerate(rows)]
-    prof = [xy(i, row["profit"]) for i, row in enumerate(rows)]
-    rev_points = " ".join(f"{x:.1f},{y:.1f}" for x, y in rev)
-    prof_points = " ".join(f"{x:.1f},{y:.1f}" for x, y in prof)
-    area_points = f"{pad},{height-pad} " + rev_points + f" {width-pad},{height-pad}"
-    grids = "".join(
-        f'<line class="chart-grid" x1="{pad}" y1="{y}" x2="{width-pad}" y2="{y}"/>'
-        for y in [48, 91, 134, 177, 220]
-    )
-    labels = "".join(
-        f'<text class="chart-axis" x="{xy(i,row["revenue"])[0]-9:.1f}" y="{height-10}">{html.escape(str(row.get("year","")))}</text>'
-        for i, row in enumerate(rows)
-    )
-    rev_dots = "".join(f'<circle class="chart-point-a" cx="{x:.1f}" cy="{y:.1f}" r="4"/>' for x, y in rev)
-    prof_dots = "".join(f'<circle class="chart-point-b" cx="{x:.1f}" cy="{y:.1f}" r="3.4"/>' for x, y in prof)
-    return f"""
-<svg class="chart-svg" viewBox="0 0 {width} {height}" role="img" aria-label="매출과 영업이익 추이">
-  <defs>
-    <linearGradient id="areaFill" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#22C8FF" stop-opacity=".56"/>
-      <stop offset="100%" stop-color="#22C8FF" stop-opacity="0"/>
-    </linearGradient>
-  </defs>
-  {grids}
-  <polygon class="chart-area" points="{area_points}"/>
-  <polyline class="chart-line-a" points="{rev_points}"/>
-  <polyline class="chart-line-b" points="{prof_points}"/>
-  {rev_dots}{prof_dots}{labels}
-</svg>
-"""
-
-
-def _portfolio_ring_style(positions):
-    palette = ["#2F78FF", "#1ED399", "#FF9A3D", "#8B64FF", "#91A0B8", "#18C5FF"]
-    weights = [max(float(p.get("weight", 0)), 0) for p in positions[:6]]
-    if not weights or sum(weights) <= 0:
-        return "conic-gradient(#E8EEF8 0deg 360deg)"
-    total = sum(weights)
-    cursor = 0.0
-    stops = []
-    for index, weight in enumerate(weights):
-        start = cursor / total * 360
-        cursor += weight
-        end = cursor / total * 360
-        stops.append(f"{palette[index % len(palette)]} {start:.1f}deg {end:.1f}deg")
-    return "conic-gradient(" + ",".join(stops) + ")"
-
-
 def render_home():
     now = datetime.now(ZoneInfo("Asia/Seoul"))
     snapshot = st.session_state.get("account_snapshot")
-    positions = sorted((snapshot or {}).get("positions", []), key=lambda p: p.get("weight", 0), reverse=True)
+    positions = (snapshot or {}).get("positions", [])
     saved_stocks = [s for s in state.get("stocks", []) if s.get("code") != "SAMPLE"]
 
     st.markdown(
         f"""
 <div class="dashboard-title">
   <div>
-    <div class="dashboard-chip">✦ LIVE INVESTMENT OS</div>
-    <h1>주식 대시보드 👋</h1>
-    <p>시장의 흐름과 내 투자 데이터를 한눈에 확인합니다.</p>
+    <div class="dashboard-chip">STOCKDASH OVERVIEW</div>
+    <h1>주식 대시보드</h1>
+    <p>계좌·기업·공시 데이터를 한 화면에서 확인하고 필요한 분석으로 바로 이동합니다.</p>
   </div>
   <div class="dashboard-clock">{now:%Y년 %m월 %d일} · {now:%H:%M}</div>
-</div>
-<div class="trend-chips">
-  <span class="trend-chip">🔥 인기 테마</span><span class="trend-chip">#AI</span>
-  <span class="trend-chip">#반도체</span><span class="trend-chip">#2차전지</span>
-  <span class="trend-chip">#배당주</span><span class="trend-chip">#ETF</span>
 </div>
 """,
         unsafe_allow_html=True,
@@ -446,166 +350,104 @@ def render_home():
         else ("미수집" if snapshot else "연결 후 표시")
     )
     focus_count = len(saved_stocks)
+    cols = st.columns(4)
+    with cols[0]:
+        card("국내주식 평가액", total_value, "한국투자증권 조회 시점 기준" if snapshot else "계좌 연결에서 불러올 수 있습니다.")
+    with cols[1]:
+        card("평가손익", pnl, "보유 국내주식 기준" if snapshot else "실제 계좌 수익률을 표시합니다.")
+    with cols[2]:
+        card("예수금", cash, "출금 가능 금액과 다를 수 있음" if snapshot else "계좌 API 연결 후 표시")
+    with cols[3]:
+        card("내 분석 종목", f"{focus_count}개", "관심·분석 저장 종목")
 
-    k1, k2, k3, k4 = st.columns(4)
-    with k1:
-        _home_kpi("총자산", total_value, "한국투자증권 조회 시점 기준" if snapshot else "계좌 연결 후 자동 표시", "▣", "blue", "자산 현황")
-    with k2:
-        _home_kpi("평가손익", pnl, "보유 국내주식 기준" if snapshot else "실제 계좌 손익을 표시합니다.", "▥", "green", "손익 흐름")
-    with k3:
-        _home_kpi("분석 종목", f"{focus_count}개", "관심·분석 저장 종목", "✦", "purple", "리서치")
-    with k4:
-        _home_kpi("예수금", cash, "출금 가능 금액과 다를 수 있음" if snapshot else "계좌 API 연결 후 표시", "●", "orange", "현금")
-
-    left, middle, right = st.columns([2.12, 1.02, 1.14])
+    left, middle, right = st.columns([2.05, 1.05, 1.15])
     with left:
-        years = report.get("years", []) if report else []
-        chart_svg = _line_chart_svg(years)
-        current_price = report.get("price") if report else stock.get("price_snapshot", {}).get("price")
-        price_label = f"{current_price:,.0f}원" if isinstance(current_price, (int, float)) else "가격 데이터 대기"
-        stock_name = html.escape(stock.get("name", "선택 종목"))
-        stock_code = html.escape(str(stock.get("code", "")))
-        chart_body = chart_svg or '<div style="padding:64px 10px;text-align:center;color:#8FB1D3;font-size:12px;">분석 데이터를 연결하면 실제 실적 추이를 표시합니다.</div>'
-        st.markdown(
-            f"""
-<div class="dark-chart-card">
-  <div class="dark-chart-head">
-    <div>
-      <div class="dark-chart-symbol">{stock_name} <span style="color:#55EAB0;font-size:15px;">{html.escape(price_label)}</span></div>
-      <div class="dark-chart-meta">{stock_code} · 확정 결산 매출/영업이익 추이</div>
-    </div>
-    <div class="live-pill"><span class="live-dot"></span> DATA LIVE</div>
-  </div>
-  {chart_body}
-  <div style="display:flex;gap:15px;font-size:9px;color:#8FB1D3;margin-top:3px;">
-    <span><b style="color:#25C8FF;">●</b> 매출</span>
-    <span><b style="color:#9B7EFF;">●</b> 영업이익</span>
-  </div>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
+        with st.container(border=True):
+            st.markdown('<div class="dashboard-section"><div><div class="dashboard-section-title">선택 종목 실적 추이</div><div class="dashboard-kicker">확정 결산 기준 · 억원</div></div></div>', unsafe_allow_html=True)
+            if report and report.get("years"):
+                chart = pd.DataFrame(report["years"])[["year", "revenue", "profit"]].rename(
+                    columns={"year": "연도", "revenue": "매출", "profit": "영업이익"}
+                )
+                chart["연도"] = chart["연도"].astype(str)
+                st.bar_chart(chart.set_index("연도"), color=["#2F6BFF", "#0EA56A"])
+                st.caption(f"{stock.get('name', '선택 종목')} · 최근 저장된 공식 분석")
+            else:
+                empty_state(
+                    "분석 종목을 선택하세요",
+                    "내 종목에서 기업을 추가하거나 분석하면 이 영역에 최근 확정 실적 흐름을 표시합니다.",
+                )
 
     with middle:
-        ring_style = _portfolio_ring_style(positions)
-        ring_value = f"{snapshot['value']:,.0f}원" if snapshot else "연결 대기"
-        legend = ""
-        for p in positions[:5]:
-            legend += (
-                '<div class="watch-row" style="grid-template-columns:1.2fr .5fr;">'
-                f'<div><div class="watch-name">{html.escape(str(p.get("name","")))}</div></div>'
-                f'<div class="watch-price">{float(p.get("weight",0)):.1f}%</div></div>'
-            )
-        if not legend:
-            legend = '<div style="padding:18px 2px;color:#8B99B4;font-size:10px;text-align:center;">계좌를 연결하면 보유 비중을 표시합니다.</div>'
-        st.markdown(
-            f"""
-<div class="portfolio-card">
-  <div class="dashboard-section"><div><div class="dashboard-section-title">포트폴리오</div><div class="dashboard-kicker">평가액 기준 비중</div></div></div>
-  <div class="portfolio-ring" style="background:{ring_style};">
-    <div class="ring-center"><small>총자산</small><strong>{html.escape(ring_value)}</strong></div>
-  </div>
-  {legend}
-</div>
-""",
-            unsafe_allow_html=True,
-        )
+        with st.container(border=True):
+            st.markdown('<div class="dashboard-section"><div><div class="dashboard-section-title">포트폴리오</div><div class="dashboard-kicker">평가액 기준 비중</div></div></div>', unsafe_allow_html=True)
+            if positions:
+                weight_rows = pd.DataFrame(
+                    [
+                        {"종목": p["name"], "비중": round(float(p.get("weight", 0)), 1), "평가액": float(p.get("value", 0))}
+                        for p in sorted(positions, key=lambda x: x.get("weight", 0), reverse=True)[:6]
+                    ]
+                )
+                st.bar_chart(weight_rows.set_index("종목")["비중"], horizontal=True)
+                st.dataframe(
+                    weight_rows[["종목", "비중"]].rename(columns={"비중": "비중 %"}),
+                    hide_index=True,
+                    use_container_width=True,
+                )
+            else:
+                empty_state("계좌 연결 대기", "계좌를 불러오면 보유 종목별 비중을 자동으로 표시합니다.")
 
     with right:
-        watch_html = ""
-        for item in list(choices.values())[:6]:
-            price = item.get("price_snapshot", {}).get("price")
-            if price is None and item.get("report"):
-                price = item["report"].get("price")
-            price_text = f"{price:,.0f}" if isinstance(price, (int, float)) else "—"
-            code = item.get("code", "")
-            code_text = "확인 대기" if str(code).startswith("pending-") else str(code)
-            watch_html += (
-                '<div class="watch-row">'
-                f'<div><div class="watch-name">{html.escape(str(item.get("name","")))}</div><div class="watch-sub">{html.escape(code_text)}</div></div>'
-                f'<div class="watch-price">{html.escape(price_text)}</div>'
-                f'<div class="watch-tag">{html.escape(str(item.get("kind","관심")))}</div></div>'
-            )
-        if not watch_html:
-            watch_html = '<div style="padding:42px 3px;color:#8B99B4;font-size:10px;text-align:center;">내 종목에서 관심 기업을 추가하세요.</div>'
-        st.markdown(
-            f"""
-<div class="watch-card">
-  <div class="dashboard-section"><div><div class="dashboard-section-title">관심종목</div><div class="dashboard-kicker">최근 저장 상태</div></div></div>
-  {watch_html}
-</div>
-""",
-            unsafe_allow_html=True,
-        )
+        with st.container(border=True):
+            st.markdown('<div class="dashboard-section"><div><div class="dashboard-section-title">관심·분석 종목</div><div class="dashboard-kicker">최근 저장 상태</div></div></div>', unsafe_allow_html=True)
+            watch_rows = []
+            for item in list(choices.values())[:7]:
+                price = item.get("price_snapshot", {}).get("price")
+                if price is None and item.get("report"):
+                    price = item["report"].get("price")
+                watch_rows.append(
+                    {
+                        "종목": item.get("name", ""),
+                        "구분": item.get("kind", "관심"),
+                        "최근가": f"{price:,.0f}" if isinstance(price, (int, float)) else "—",
+                    }
+                )
+            if watch_rows:
+                st.dataframe(pd.DataFrame(watch_rows), hide_index=True, use_container_width=True)
+            else:
+                empty_state("관심종목 없음", "내 종목에서 첫 기업을 추가하면 이곳에 표시됩니다.")
 
-    market_left, activity_right = st.columns([1.46, 1])
-    with market_left:
-        caps = active_capabilities()
-        market_items = [
-            ("KOSPI · KOSDAQ", "market.index"),
-            ("투자자 수급", "market.investor_flow"),
-            ("업종 흐름", "sector.performance"),
-            ("원/달러", "macro.fx"),
-        ]
-        market_html = ""
-        for title, cap in market_items:
-            state_text = "연결됨" if cap in caps else "API 연결 필요"
-            market_html += (
-                '<div class="market-mini">'
-                f'<div class="market-mini-title">{html.escape(title)}</div>'
-                f'<div class="market-mini-value">{html.escape(state_text)}</div>'
-                f'<div class="market-mini-cap">{html.escape(cap)}</div></div>'
-            )
-        st.markdown(
-            f"""
-<div class="market-card">
-  <div class="dashboard-section"><div><div class="dashboard-section-title">주요 시장 정보</div><div class="dashboard-kicker">기관 API 연결 상태</div></div></div>
-  <div class="market-grid">{market_html}</div>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
+    bottom_left, bottom_right = st.columns([1.45, 1])
+    with bottom_left:
+        with st.container(border=True):
+            st.markdown('<div class="dashboard-section"><div><div class="dashboard-section-title">주요 시장 데이터</div><div class="dashboard-kicker">기관 API 연결 상태</div></div></div>', unsafe_allow_html=True)
+            caps = active_capabilities()
+            market_cards = [
+                ("KOSPI·KOSDAQ", "market.index"),
+                ("투자자 수급", "market.investor_flow"),
+                ("업종 흐름", "sector.performance"),
+                ("원/달러", "macro.fx"),
+            ]
+            mc = st.columns(4)
+            for col, (label, cap) in zip(mc, market_cards):
+                with col:
+                    card(label, "연결됨" if cap in caps else "연결 필요", cap)
 
-    with activity_right:
-        journal = list(reversed(state.get("journal", [])))[:5]
-        names = {s.get("code"): s.get("name", s.get("code")) for s in state.get("stocks", [])}
-        activity_html = ""
-        for item in journal:
-            at = str(item.get("at", "")).replace("T", " ")[:16]
-            kind = {"automatic": "자동분석", "note": "투자일지"}.get(item.get("kind"), item.get("kind", "기록"))
-            activity_html += (
-                '<div class="activity-row">'
-                f'<div class="watch-sub">{html.escape(at)}</div>'
-                f'<div class="watch-name">{html.escape(str(names.get(item.get("code"), item.get("code",""))))}</div>'
-                f'<div class="watch-tag">{html.escape(str(kind))}</div></div>'
-            )
-        if not activity_html:
-            activity_html = '<div style="padding:42px 3px;color:#8B99B4;font-size:10px;text-align:center;">분석이나 투자일지를 저장하면 최근 활동이 표시됩니다.</div>'
-        st.markdown(
-            f"""
-<div class="activity-card">
-  <div class="dashboard-section"><div><div class="dashboard-section-title">최근 활동</div><div class="dashboard-kicker">분석 · 투자일지</div></div></div>
-  {activity_html}
-</div>
-""",
-            unsafe_allow_html=True,
-        )
+    with bottom_right:
+        with st.container(border=True):
+            st.markdown('<div class="dashboard-section"><div><div class="dashboard-section-title">최근 활동</div><div class="dashboard-kicker">분석·투자일지</div></div></div>', unsafe_allow_html=True)
+            journal = list(reversed(state.get("journal", [])))[:6]
+            names = {s.get("code"): s.get("name", s.get("code")) for s in state.get("stocks", [])}
+            rows = []
+            for item in journal:
+                at = str(item.get("at", "")).replace("T", " ")[:16]
+                kind = {"automatic": "자동분석", "note": "투자일지"}.get(item.get("kind"), item.get("kind", "기록"))
+                rows.append({"일시": at, "종목": names.get(item.get("code"), item.get("code", "")), "활동": kind})
+            if rows:
+                st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+            else:
+                empty_state("최근 활동 없음", "기업 분석이나 투자일지를 저장하면 최근 활동을 표시합니다.")
 
-    ticker_items = [
-        "실시간 시장 정보",
-        f"내 분석 종목 {focus_count}개",
-        f"계좌 상태 {'연결됨' if snapshot else '연결 필요'}",
-        f"시장 지수 {'연결됨' if 'market.index' in active_capabilities() else 'API 대기'}",
-        f"투자자 수급 {'연결됨' if 'market.investor_flow' in active_capabilities() else 'API 대기'}",
-    ]
-    ticker_once = "".join(
-        f'<span><i class="ticker-live"></i>{html.escape(item)}</span>' for item in ticker_items
-    )
-    st.markdown(
-        f'<div class="ticker-shell"><div class="ticker-track">{ticker_once}{ticker_once}</div></div>',
-        unsafe_allow_html=True,
-    )
-    st.caption("대시보드는 저장·연결된 실제 데이터만 사용합니다. 연결되지 않은 시장 데이터에는 임의 수치를 표시하지 않습니다.")
+    st.caption("홈 화면은 저장·연결된 실제 데이터만 표시합니다. 연결되지 않은 시장 데이터에는 임의 수치를 넣지 않습니다.")
 
 
 def render_market():
@@ -934,14 +776,12 @@ def render_placeholder(title, subtitle, required):
                 st.caption(cap)
 
 
-if nav == "주식 대시보드":
+if nav == "홈":
     render_home()
 elif nav == "내 종목":
     render_research(store, state, sample_mode)
 elif nav == "계좌 연결":
     render_portfolio(store, sample_mode)
-elif nav == "시장 현황":
-    render_market()
 elif nav == "교육자료":
     render_education()
 else:
