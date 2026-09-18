@@ -272,6 +272,18 @@ with st.sidebar:
     else:
         st.caption("클라우드 저장" if store.cloud else "실행 서버 저장")
 
+    st.markdown(
+        """
+<div class="sidebar-promo">
+  <div class="sidebar-promo-badge">✦ STOCKDASH</div>
+  <div class="sidebar-promo-title">더 빠른 판단을 위한<br>투자 데이터 허브</div>
+  <div class="sidebar-promo-note">계좌 · 공시 · 기업 분석을 한 흐름으로 연결합니다.</div>
+  <div class="sidebar-promo-cta">Data to Insight →</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
     if password and st.button("로그아웃", use_container_width=True):
         st.session_state.clear()
         st.rerun()
@@ -510,9 +522,9 @@ def render_home():
             code_text = "확인 대기" if str(code).startswith("pending-") else str(code)
             watch_html += (
                 '<div class="watch-row">'
-                f'<div><div class="watch-name">{html.escape(item.get("name",""))}</div><div class="watch-sub">{html.escape(code_text)}</div></div>'
+                f'<div><div class="watch-name">{html.escape(str(item.get("name","")))}</div><div class="watch-sub">{html.escape(code_text)}</div></div>'
                 f'<div class="watch-price">{html.escape(price_text)}</div>'
-                f'<div class="watch-tag">{html.escape(item.get("kind","관심"))}</div></div>'
+                f'<div class="watch-tag">{html.escape(str(item.get("kind","관심")))}</div></div>'
             )
         if not watch_html:
             watch_html = '<div style="padding:42px 3px;color:#8B99B4;font-size:10px;text-align:center;">내 종목에서 관심 기업을 추가하세요.</div>'
@@ -548,7 +560,7 @@ def render_home():
             f"""
 <div class="market-card">
   <div class="dashboard-section"><div><div class="dashboard-section-title">주요 시장 정보</div><div class="dashboard-kicker">기관 API 연결 상태</div></div></div>
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;">{market_html}</div>
+  <div class="market-grid">{market_html}</div>
 </div>
 """,
             unsafe_allow_html=True,
